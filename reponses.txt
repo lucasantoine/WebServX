@@ -1,0 +1,15 @@
+3.2.1 Test de votre programme
+------------------------------
+
+1/ Messages d'erreur : 
+- bind socker_serveur: Address already in use
+- accept: Bad file descriptor
+
+2/ Le client plante et n'affiche pas le message.
+L'option -z fait que le client n'envoie pas 
+d'information au serveur qui ne peut plus répondre
+
+3/Connection refusée par le serveur car on tente de se connecter en IPv6.
+
+4/ Le deuxième client tente de se connecter en vain
+car le premier client bloque le serveur dans la boucle.
