@@ -9,10 +9,22 @@
 #include <sys/wait.h>
 #include "socket.h"
 
+void traitement_signal(int sig) { 
+	waitpid(sig, NULL, WNOHANG);
+}
+
 
 void initialiser_signaux(void){
 	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) { 
 		perror("signal"); 
+	}
+	struct sigaction sa;
+	//sa.sa_handler = traitement_signal; 
+	sigemptyset(&sa.sa_mask); 
+	sa.sa_flags = SA_RESTART;
+	sa.sa_handler = traitement_signal;
+	if (sigaction(SIGCHLD, &sa, NULL) == -1) { 
+		perror("sigaction(SIGCHLD)"); 
 	}
 }
 
@@ -31,7 +43,8 @@ int main (/*int argc , char ** argv*/){
 		    return -1;
 		    /* traitement d ’ erreur */
 		}
-		if(fork()){
+		int pidFork = fork();
+		if(pidFork == 0){
 			/* On peut maintenant dialoguer avec le client */
 			const char *message_bienvenue[15] = {
 				"#===========================================================================#\n", 
@@ -42,7 +55,7 @@ int main (/*int argc , char ** argv*/){
 				"|        Il s'agit de la page par défaut de WebServX, si vous la voyez      |\n", 
 				"|                     cela signifie que tout fonctionne.                    |\n", 
 				"|       Pour la changer, nous vous invitons a regarder la documentation.    |\n", 
-				"|          WebServX est un serveur web open source crée dans le cadre       |\n", 
+				"|          WebServX est un serveur web open source créé dans le cadre       |\n", 
 				"|         du cours de Programmation Système Avancé à l'IUT A de Lille.      |\n", 
 				"|          Ce projet a été réalisé par ANTOINE Lucas et POMIER Mathys       |\n", 
 				"|      et supervisé par HAUSPIE Michael, PLACE Jean-Marie, RIQUET Damien    |\n", 
@@ -53,9 +66,10 @@ int main (/*int argc , char ** argv*/){
 			for(int i = 0; i < 15; i++){
 				write(socket_client , message_bienvenue[i] , strlen(message_bienvenue[i]));
 			}
-			while((size = read(socket_client, client_message, 80)) != -1){
+			while((size = read(socket_client, client_message, 80)) > 0){
 				write(socket_client, client_message, size);
 			}
+			return 0;
 		}
 		close(socket_client);
 	}

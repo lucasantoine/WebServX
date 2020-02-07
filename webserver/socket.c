@@ -21,8 +21,6 @@ int creer_serveur(int port){
         perror("Can not set SO_REUSEADDR option"); 
     }
 
-
-
     struct sockaddr_in saddr;
     saddr.sin_family = AF_INET; /* Socket ipv4 */
     saddr.sin_port = htons(port); /* Port d ’e coute */
