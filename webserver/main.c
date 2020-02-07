@@ -35,7 +35,7 @@ int main (/*int argc , char ** argv*/){
     int socket_serveur = creer_serveur(8080);
     int socket_client ;
 	char client_message[80];
-	int size = 0;
+	//int size = 0;
 	while(1){ 
 	    socket_client = accept(socket_serveur, NULL, NULL);
 		if(socket_client == -1){
@@ -45,6 +45,12 @@ int main (/*int argc , char ** argv*/){
 		}
 		int pidFork = fork();
 		if(pidFork == 0){
+			FILE * file = fdopen(socket_client, "w+");
+			if(file == NULL){
+		    	perror("fdopen");
+		    	return -1;
+		    	/* traitement d ’ erreur */
+			}
 			/* On peut maintenant dialoguer avec le client */
 			const char *message_bienvenue[15] = {
 				"#===========================================================================#\n", 
@@ -64,10 +70,10 @@ int main (/*int argc , char ** argv*/){
 				"#===========================================================================#\n"};
 			sleep(1);
 			for(int i = 0; i < 15; i++){
-				write(socket_client , message_bienvenue[i] , strlen(message_bienvenue[i]));
+				fprintf(file, "%s", message_bienvenue[i]);
 			}
-			while((size = read(socket_client, client_message, 80)) > 0){
-				write(socket_client, client_message, size);
+			while(fgets(client_message, 80, file) != NULL){
+				fprintf(file, "<WebservX> %s", client_message);
 			}
 			return 0;
 		}
