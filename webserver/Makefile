@@ -7,7 +7,7 @@ CFLAGS=-Wall -W -Werror -g
 LDFLAGS=-lpthread -lrt
 
 # Le nom de l'exécutable à fabriquer
-EXE=pawnee
+EXE=webservx
 
 # Les variables HEADERS, CFILES et OBJS vont contenir respectivement
 # la listes des fichiers .h, .c et le nom des fichiers .o à fabriquer

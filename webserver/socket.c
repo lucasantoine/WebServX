@@ -8,13 +8,20 @@
 
 
 int creer_serveur(int port){
-     int socket_serveur;
+    int socket_serveur;
     socket_serveur = socket(AF_INET, SOCK_STREAM, 0);
     if (socket_serveur == -1){
         /* traitement de l ’ erreur */
         perror ("socket_serveur");
         return -1;
     }
+
+    int optval = 1;
+    if (setsockopt(socket_serveur, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(int)) == -1) {
+        perror("Can not set SO_REUSEADDR option"); 
+    }
+
+
 
     struct sockaddr_in saddr;
     saddr.sin_family = AF_INET; /* Socket ipv4 */
