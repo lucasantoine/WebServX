@@ -10,10 +10,16 @@
 #include "socket.h"
 
 
-
+void initialiser_signaux(void){
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) { 
+		perror("signal"); 
+	}
+}
 
 int main (/*int argc , char ** argv*/){
    
+	initialiser_signaux();
+
     int socket_serveur = creer_serveur(8080);
     int socket_client ;
 	char client_message[80];
