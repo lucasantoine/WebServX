@@ -9,6 +9,8 @@
 #include <sys/wait.h>
 #include "socket.h"
 
+const int BUFFER_SIZE = 128;
+
 void traitement_signal(int sig) { 
 	waitpid(sig, NULL, WNOHANG);
 }
@@ -33,9 +35,9 @@ int main (/*int argc , char ** argv*/){
 	initialiser_signaux();
 
     int socket_serveur = creer_serveur(8080);
-    int socket_client ;
-	char client_message[80];
-	//int size = 0;
+    int socket_client;
+	char client_message[BUFFER_SIZE];
+	int cpt = 1;
 	while(1){ 
 	    socket_client = accept(socket_serveur, NULL, NULL);
 		if(socket_client == -1){
@@ -68,12 +70,19 @@ int main (/*int argc , char ** argv*/){
 				"|                 et BEAUFILS Bruno. Projet lancé le 31/01/2020.            |\n", 
 				"|                                                                           |\n",
 				"#===========================================================================#\n"};
-			sleep(1);
-			for(int i = 0; i < 15; i++){
-				fprintf(file, "%s", message_bienvenue[i]);
-			}
-			while(fgets(client_message, 80, file) != NULL){
-				fprintf(file, "<WebservX> %s", client_message);
+
+			while(fgets(client_message, BUFFER_SIZE, file) != NULL) {
+				printf(client_message);
+				if(cpt == 1 && strcmp(client_message, "GET / HTTP/1.1\r\n") != 0) {
+					fprintf(file, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad Request\r\n");
+					return 0;
+				} else if(cpt > 1 && strcmp(client_message, "\r\n") == 0) {
+					fprintf(file, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", 1182);
+					for(int i = 0; i < 15; i++){
+						fprintf(file, "%s", message_bienvenue[i]);
+					}
+				}
+				cpt++;
 			}
 			return 0;
 		}

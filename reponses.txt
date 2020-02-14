@@ -1,3 +1,4 @@
+------------------------------
 3.2.1 Test de votre programme
 ------------------------------
 
@@ -13,3 +14,23 @@ d'information au serveur qui ne peut plus répondre
 
 4/ Le deuxième client tente de se connecter en vain
 car le premier client bloque le serveur dans la boucle.
+
+
+---------------------------------
+5.2.1 Manipulations préliminaires
+---------------------------------
+
+3/ 
+
+GET / HTTP/1.1
+Host: localhost:8080
+User-Agent: curl/7.52.1
+Accept: */*
+
+=> Le client web envoie au serveur une requête HTTP de type GET 
+
+4/ 
+
+GET -> verbe HTTP
+/ -> chemin de la ressource
+HTTP/1.1 -> version du protocole
