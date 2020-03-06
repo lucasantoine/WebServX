@@ -8,8 +8,11 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include "socket.h"
+#include "http_parse.h"
+
 
 const int BUFFER_SIZE = 128;
+const char *message_bienvenue =  "#===========================================================================#\n|                                                                           |\n|                                  WebServ'X                                |\n|                                                                           |\n|                     Bonjour et bienvenue sur WebServX !                   |\n|        Il s'agit de la page par défaut de WebServX, si vous la voyez      |\n|                     cela signifie que tout fonctionne.                    |\n|       Pour la changer, nous vous invitons a regarder la documentation.    |\n|          WebServX est un serveur web open source créé dans le cadre       |\n|         du cours de Programmation Système Avancé à l'IUT A de Lille.      |\n|          Ce projet a été réalisé par ANTOINE Lucas et POMIER Mathys       |\n|      et supervisé par HAUSPIE Michael, PLACE Jean-Marie, RIQUET Damien    |\n|                 et BEAUFILS Bruno. Projet lancé le 31/01/2020.            |\n|                                                                           |\n#===========================================================================#\n";
 
 void traitement_signal(int sig) { 
 	waitpid(sig, NULL, WNOHANG);
@@ -30,6 +33,29 @@ void initialiser_signaux(void){
 	}
 }
 
+char * fgets_or_exit ( char * buffer , int size , FILE * stream ){
+	if(fgets(buffer, size, stream) == NULL) {
+		exit(0);
+	}
+	return buffer;
+}
+
+void skip_headers(FILE *client){
+	char buffer[BUFFER_SIZE];
+	while(strcmp(buffer, "\r\n") != 0 && strcmp(buffer, "\n") != 0) { 
+		fgets_or_exit(buffer, BUFFER_SIZE, client);
+	}
+}
+
+void send_status ( FILE * client , int code , const char * reason_phrase ){
+	fprintf(client, "HTTP/1.1 %d %s\r\n", code, reason_phrase);
+}
+
+void send_response ( FILE * client , int code , const char * reason_phrase , const char * message_body ){
+	send_status(client, code, reason_phrase);
+	fprintf(client, "Content-Length: %d\r\n\r\n%s", (int) strlen(message_body), message_body);
+}
+
 int main (/*int argc , char ** argv*/){
    
 	initialiser_signaux();
@@ -47,51 +73,27 @@ int main (/*int argc , char ** argv*/){
 		int pidFork = fork();
 		if(pidFork == 0){
 			//int cpt = 1;
-			FILE * file = fdopen(socket_client, "w+");
-			if(file == NULL){
+			FILE * client = fdopen(socket_client, "w+");
+			http_request request;
+			if(client == NULL){
 		    	perror("fdopen");
 		    	return -1;
 		    	/* traitement d ’ erreur */
 			}
-			/* On peut maintenant dialoguer avec le client */
-			const char *message_bienvenue[15] = {
-				"#===========================================================================#\n", 
-				"|                                                                           |\n",
-				"|                                  WebServ'X                                |\n",
-				"|                                                                           |\n",
-				"|                     Bonjour et bienvenue sur WebServX !                   |\n", 
-				"|        Il s'agit de la page par défaut de WebServX, si vous la voyez      |\n", 
-				"|                     cela signifie que tout fonctionne.                    |\n", 
-				"|       Pour la changer, nous vous invitons a regarder la documentation.    |\n", 
-				"|          WebServX est un serveur web open source créé dans le cadre       |\n", 
-				"|         du cours de Programmation Système Avancé à l'IUT A de Lille.      |\n", 
-				"|          Ce projet a été réalisé par ANTOINE Lucas et POMIER Mathys       |\n", 
-				"|      et supervisé par HAUSPIE Michael, PLACE Jean-Marie, RIQUET Damien    |\n", 
-				"|                 et BEAUFILS Bruno. Projet lancé le 31/01/2020.            |\n", 
-				"|                                                                           |\n",
-				"#===========================================================================#\n"};
-
-			while(fgets(client_message, BUFFER_SIZE, file) != NULL) {
-				if(strcmp(client_message, "GET /inexistant HTTP/1.1\r\n") == 0){
-					fprintf(file, "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 15\r\n\r\n404 Not Found\r\n");
-				}else if(strcmp(client_message, "GET / HTTP/1.1\r\n") != 0){
-					fprintf(file, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad Request\r\n");
+			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
+				if (parse_http_request(client_message, &request) == 0){
+					send_response(client, 400, "Bad Request", "Bad request\r\n");
+				}else if (request.method == HTTP_UNSUPPORTED){
+					send_response(client, 405 ,"Method Not Allowed", "Method Not Allowed\r\n");
+				}else if (strcmp(request.target ,"/") == 0){
+					send_response(client, 200, "OK", message_bienvenue);
 				}else{
-					while(strcmp(client_message, "\r\n") != 0) { 
-						if(fgets(client_message, BUFFER_SIZE, file) == NULL) {
-							exit(0);
-						}
-					}
-					fprintf(file, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", 1182);
-					for(int i = 0; i < 15; i++){
-						fprintf(file, "%s", message_bienvenue[i]);
-					}
+					send_response(client, 404, "Not Found", "Not Found\r\n");
 				}
 			}
-			return 0;
+			close(socket_client);
 		}
-		close(socket_client);
 	}
-    return 0;
+	return 0;
 }
 
