@@ -5,8 +5,11 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <signal.h>
 #include <sys/wait.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include "socket.h"
 #include "http_parse.h"
 
@@ -51,13 +54,73 @@ void send_status ( FILE * client , int code , const char * reason_phrase ){
 	fprintf(client, "HTTP/1.1 %d %s\r\n", code, reason_phrase);
 }
 
-void send_response ( FILE * client , int code , const char * reason_phrase , const char * message_body ){
+void send_response ( FILE * client , int code , const char * reason_phrase , const int length, const char * message_body ){
 	send_status(client, code, reason_phrase);
-	fprintf(client, "Content-Length: %d\r\n\r\n%s", (int) strlen(message_body), message_body);
+	fprintf(client, "Content-Length: %d\r\n\r\n%s", length, message_body);
 }
 
-int main (/*int argc , char ** argv*/){
-   
+char * rewrite_target(char * target){
+	int i = strchr(target, '?') - target;
+	char * rewrite = "";
+	return strncpy(rewrite, target, i);
+}
+
+FILE * check_and_open(const char * target, const char * document_root){
+	char * pathname = "";
+	strcat(pathname, document_root);
+	strcat(pathname, target);
+	struct stat * stats = NULL;
+	if(stat(pathname, stats) == -1){
+		perror("stat");
+		return NULL;
+	}
+	if(S_ISREG(stats->st_mode)){
+		FILE * file = fopen(pathname, "r");
+		return file;
+	}
+	return NULL;
+}
+
+int get_file_size(int fd){
+	struct stat * stats = NULL;
+	if(fstat(fd, stats) == -1){
+		perror("stat");
+		return 0;
+	}
+	return stats->st_size;
+}
+
+int copy(FILE * in, FILE * out){
+	char b;
+	while(fread(&b, 1, 1, in) == 1){
+		if(fwrite(&b, 1, 1, out) == 0){
+			return -1;
+		}
+	}
+	return 0;
+}
+
+int main (int argc , char ** argv){
+
+	if(argc <= 1 || argc > 2){
+		perror("Invalid number of arguments");
+		exit(1);
+	}
+	
+	DIR * dirroot;
+	dirroot = opendir(argv[1]);
+	if(dirroot == NULL){
+		perror("opendir");
+		exit(1);
+	}
+
+	if(chdir(argv[1]) < 0){
+		perror("chdir");
+		exit(1);
+	}
+
+	char * document_root = argv[1];
+	
 	initialiser_signaux();
 
     int socket_serveur = creer_serveur(8080);
@@ -73,6 +136,7 @@ int main (/*int argc , char ** argv*/){
 		int pidFork = fork();
 		if(pidFork == 0){
 			//int cpt = 1;
+			printf("OK OK");
 			FILE * client = fdopen(socket_client, "w+");
 			http_request request;
 			if(client == NULL){
@@ -80,16 +144,38 @@ int main (/*int argc , char ** argv*/){
 		    	return -1;
 		    	/* traitement d ’ erreur */
 			}
+			char * response_message = "";
 			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
+				printf("BOUCLE");
 				if (parse_http_request(client_message, &request) == 0){
-					send_response(client, 400, "Bad Request", "Bad request\r\n");
+					response_message = "Bad Request\r\n";
+					send_response(client, 400, "Bad Request", strlen(response_message),response_message);
 				}else if (request.method == HTTP_UNSUPPORTED){
-					send_response(client, 405 ,"Method Not Allowed", "Method Not Allowed\r\n");
-				}else if (strcmp(request.target ,"/") == 0){
+					response_message = "Method Not Allowed\r\n";
+					send_response(client, 405 ,"Method Not Allowed", strlen(response_message),response_message);
+				}else{
+					char * rewritetarget = rewrite_target(request.target);
+					FILE * file = check_and_open(rewritetarget, document_root);
+					if(file == NULL){
+						printf("FILE NOT FOUND 404");
+						response_message = "Not Found\r\n";
+						send_response(client, 404, "Not Found", strlen(response_message),response_message);
+					}else{
+						printf("FILE FOUND");
+						skip_headers(client);
+						int fd = fileno(file);
+						send_response(client, 200, "OK", get_file_size(fd), "");
+						copy(file, client);
+					}
+				}
+				
+				
+				
+				/*else if (strcmp(request.target ,"/") == 0){
 					send_response(client, 200, "OK", message_bienvenue);
 				}else{
 					send_response(client, 404, "Not Found", "Not Found\r\n");
-				}
+				}*/
 			}
 			close(socket_client);
 		}
