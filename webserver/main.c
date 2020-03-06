@@ -72,8 +72,9 @@ int main (/*int argc , char ** argv*/){
 				"#===========================================================================#\n"};
 
 			while(fgets(client_message, BUFFER_SIZE, file) != NULL) {
-				
-				if(strcmp(client_message, "GET / HTTP/1.1\r\n") != 0){
+				if(strcmp(client_message, "GET /inexistant HTTP/1.1\r\n") == 0){
+					fprintf(file, "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 15\r\n\r\n404 Not Found\r\n");
+				}else if(strcmp(client_message, "GET / HTTP/1.1\r\n") != 0){
 					fprintf(file, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad Request\r\n");
 				}else{
 					while(strcmp(client_message, "\r\n") != 0) { 
@@ -86,27 +87,6 @@ int main (/*int argc , char ** argv*/){
 						fprintf(file, "%s", message_bienvenue[i]);
 					}
 				}
-				
-				/*printf(client_message);
-				if(cpt == 1) {
-					int res = 0;
-					if(strcmp(client_message, "GET / HTTP/1.1\r\n") != 0){
-						fprintf(file, "HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 17\r\n\r\n400 Bad Request\r\n");
-					}else if((res = strcmp(client_message, "GET /inexistant HTTP/1.1\r\n")) == 0){
-						fprintf(file, "HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 15\r\n\r\n404 Not Found\r\n");
-						fprintf(file, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", 1182);
-						for(int i = 0; i < 15; i++){
-							fprintf(file, "%s", message_bienvenue[i]);
-						}
-						printf("HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 100\r\n\r\n404 Not Found\r\n");
-					}
-				} else if(cpt > 1 && strcmp(client_message, "\r\n") == 0) {
-					fprintf(file, "HTTP/1.1 200 OK\r\nContent-Length: %d\r\n\r\n", 1182);
-					for(int i = 0; i < 15; i++){
-						fprintf(file, "%s", message_bienvenue[i]);
-					}
-				}
-				cpt++;*/
 			}
 			return 0;
 		}
