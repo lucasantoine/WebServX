@@ -59,17 +59,27 @@ void send_response ( FILE * client , int code , const char * reason_phrase , con
 	fprintf(client, "Content-Length: %d\r\n\r\n%s", length, message_body);
 }
 
+int indexOf(char c, char*str){
+	for(unsigned int i = 0; i < strlen(str); i++){
+		if(str[i] == c) return i;
+	}
+	return -1;
+}
+
 char * rewrite_target(char * target){
+	if(strcmp(target, "/") == 0) target = "/index.html";
 	int i = strchr(target, '?') - target;
-	char * rewrite = "";
-	return strncpy(rewrite, target, i);
+	if(i < 0) return target;
+	char * rewrite = malloc(sizeof(char)*i);
+	strncpy(rewrite, target, i);
+	return rewrite;
 }
 
 FILE * check_and_open(const char * target, const char * document_root){
-	char * pathname = "";
+	char * pathname = malloc(strlen(document_root)+strlen(target));
 	strcat(pathname, document_root);
 	strcat(pathname, target);
-	struct stat * stats = NULL;
+	struct stat * stats = malloc(sizeof(struct stat));
 	if(stat(pathname, stats) == -1){
 		perror("stat");
 		return NULL;
@@ -82,7 +92,7 @@ FILE * check_and_open(const char * target, const char * document_root){
 }
 
 int get_file_size(int fd){
-	struct stat * stats = NULL;
+	struct stat * stats = malloc(sizeof(struct stat));
 	if(fstat(fd, stats) == -1){
 		perror("stat");
 		return 0;
@@ -135,8 +145,6 @@ int main (int argc , char ** argv){
 		}
 		int pidFork = fork();
 		if(pidFork == 0){
-			//int cpt = 1;
-			printf("OK OK");
 			FILE * client = fdopen(socket_client, "w+");
 			http_request request;
 			if(client == NULL){
@@ -145,8 +153,8 @@ int main (int argc , char ** argv){
 		    	/* traitement d ’ erreur */
 			}
 			char * response_message = "";
+			
 			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
-				printf("BOUCLE");
 				if (parse_http_request(client_message, &request) == 0){
 					response_message = "Bad Request\r\n";
 					send_response(client, 400, "Bad Request", strlen(response_message),response_message);
@@ -157,25 +165,19 @@ int main (int argc , char ** argv){
 					char * rewritetarget = rewrite_target(request.target);
 					FILE * file = check_and_open(rewritetarget, document_root);
 					if(file == NULL){
-						printf("FILE NOT FOUND 404");
 						response_message = "Not Found\r\n";
 						send_response(client, 404, "Not Found", strlen(response_message),response_message);
+					}else if(strstr(rewritetarget, "..") != NULL){
+						response_message = "Forbidden\r\n";
+						send_response(client, 403, "Forbiden", strlen(response_message),response_message);
 					}else{
-						printf("FILE FOUND");
 						skip_headers(client);
 						int fd = fileno(file);
 						send_response(client, 200, "OK", get_file_size(fd), "");
 						copy(file, client);
 					}
 				}
-				
-				
-				
-				/*else if (strcmp(request.target ,"/") == 0){
-					send_response(client, 200, "OK", message_bienvenue);
-				}else{
-					send_response(client, 404, "Not Found", "Not Found\r\n");
-				}*/
+
 			}
 			close(socket_client);
 		}
