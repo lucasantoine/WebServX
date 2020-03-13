@@ -56,7 +56,7 @@ void send_status ( FILE * client , int code , const char * reason_phrase ){
 
 void send_response ( FILE * client , int code , const char * reason_phrase , const int length, const char * message_body ){
 	send_status(client, code, reason_phrase);
-	fprintf(client, "Content-Length: %d\r\n\r\n%s", length, message_body);
+	fprintf(client, "Content-Type: text/html\r\nContent-Length: %d\r\n\r\n%s", length, message_body);
 }
 
 int indexOf(char c, char*str){
