@@ -54,16 +54,9 @@ void send_status ( FILE * client , int code , const char * reason_phrase ){
 	fprintf(client, "HTTP/1.1 %d %s\r\n", code, reason_phrase);
 }
 
-void send_response ( FILE * client , int code , const char * reason_phrase , const int length, const char * message_body ){
+void send_response ( FILE * client , int code , const char * reason_phrase , const char * content_type, const int length, const char * message_body ){
 	send_status(client, code, reason_phrase);
-	fprintf(client, "Content-Type: text/html\r\nContent-Length: %d\r\n\r\n%s", length, message_body);
-}
-
-int indexOf(char c, char*str){
-	for(unsigned int i = 0; i < strlen(str); i++){
-		if(str[i] == c) return i;
-	}
-	return -1;
+	fprintf(client, "Content-Type: %s\r\nContent-Length: %d\r\n\r\n%s", content_type,length, message_body);
 }
 
 char * rewrite_target(char * target){
@@ -157,23 +150,25 @@ int main (int argc , char ** argv){
 			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
 				if (parse_http_request(client_message, &request) == 0){
 					response_message = "Bad Request\r\n";
-					send_response(client, 400, "Bad Request", strlen(response_message),response_message);
+					send_response(client, 400, "Bad Request", "text/html", strlen(response_message),response_message);
 				}else if (request.method == HTTP_UNSUPPORTED){
 					response_message = "Method Not Allowed\r\n";
-					send_response(client, 405 ,"Method Not Allowed", strlen(response_message),response_message);
+					send_response(client, 405 ,"Method Not Allowed", "text/html", strlen(response_message),response_message);
 				}else{
 					char * rewritetarget = rewrite_target(request.target);
 					FILE * file = check_and_open(rewritetarget, document_root);
 					if(file == NULL){
 						response_message = "Not Found\r\n";
-						send_response(client, 404, "Not Found", strlen(response_message),response_message);
+						send_response(client, 404, "Not Found", "text/html", strlen(response_message),response_message);
 					}else if(strstr(rewritetarget, "..") != NULL){
 						response_message = "Forbidden\r\n";
-						send_response(client, 403, "Forbiden", strlen(response_message),response_message);
+						send_response(client, 403, "Forbiden", "text/html", strlen(response_message),response_message);
 					}else{
 						skip_headers(client);
 						int fd = fileno(file);
-						send_response(client, 200, "OK", get_file_size(fd), "");
+						char * contenttype = "text/html";
+						if(strstr(rewritetarget, ".jpg")) contenttype = "image/jpeg";
+						send_response(client, 200, "OK", contenttype, get_file_size(fd), "");
 						copy(file, client);
 					}
 				}
