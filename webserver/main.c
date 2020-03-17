@@ -12,6 +12,7 @@
 #include <dirent.h>
 #include "socket.h"
 #include "http_parse.h"
+#include "stats.h"
 
 
 const int BUFFER_SIZE = 128;
@@ -103,6 +104,12 @@ int copy(FILE * in, FILE * out){
 	return 0;
 }
 
+void send_stats(FILE *client){
+	skip_headers(client);
+	//snprintf(buffer, sizeof(buffer), "Statistiques du serveur : \n Nombre de connections : %dr\n", get_stats()->served_connections);
+	send_response(client, 200, "OK", "text/html", 256, "TEST");
+}
+
 int main (int argc , char ** argv){
 
 	if(argc <= 1 || argc > 2){
@@ -125,6 +132,7 @@ int main (int argc , char ** argv){
 	char * document_root = argv[1];
 	
 	initialiser_signaux();
+	init_stats();
 
     int socket_serveur = creer_serveur(8080);
     int socket_client;
@@ -145,31 +153,43 @@ int main (int argc , char ** argv){
 		    	return -1;
 		    	/* traitement d ’ erreur */
 			}
+
+			get_stats()->served_connections++;
+
 			char * response_message = "";
 			
 			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
+				get_stats()->served_requests++;
 				if (parse_http_request(client_message, &request) == 0){
 					response_message = "Bad Request\r\n";
 					send_response(client, 400, "Bad Request", "text/html", strlen(response_message),response_message);
+					get_stats()->ko_400++;
 				}else if (request.method == HTTP_UNSUPPORTED){
 					response_message = "Method Not Allowed\r\n";
 					send_response(client, 405 ,"Method Not Allowed", "text/html", strlen(response_message),response_message);
 				}else{
 					char * rewritetarget = rewrite_target(request.target);
-					FILE * file = check_and_open(rewritetarget, document_root);
-					if(file == NULL){
-						response_message = "Not Found\r\n";
-						send_response(client, 404, "Not Found", "text/html", strlen(response_message),response_message);
-					}else if(strstr(rewritetarget, "..") != NULL){
-						response_message = "Forbidden\r\n";
-						send_response(client, 403, "Forbiden", "text/html", strlen(response_message),response_message);
+					if(strcmp(rewritetarget, "/stats") == 0){
+						send_stats(client);
 					}else{
-						skip_headers(client);
-						int fd = fileno(file);
-						char * contenttype = "text/html";
-						if(strstr(rewritetarget, ".jpg")) contenttype = "image/jpeg";
-						send_response(client, 200, "OK", contenttype, get_file_size(fd), "");
-						copy(file, client);
+						FILE * file = check_and_open(rewritetarget, document_root);
+						if(file == NULL){
+							response_message = "Not Found\r\n";
+							send_response(client, 404, "Not Found", "text/html", strlen(response_message),response_message);
+							get_stats()->ko_404++;
+						}else if(strstr(rewritetarget, "..") != NULL){
+							response_message = "Forbidden\r\n";
+							send_response(client, 403, "Forbiden", "text/html", strlen(response_message),response_message);
+							get_stats()->ko_403++;
+						}else{
+							skip_headers(client);
+							int fd = fileno(file);
+							char * contenttype = "text/html";
+							if(strstr(rewritetarget, ".jpg")) contenttype = "image/jpeg";
+							send_response(client, 200, "OK", contenttype, get_file_size(fd), "");
+							copy(file, client);
+							get_stats()->ok_200++;
+						}
 					}
 				}
 
