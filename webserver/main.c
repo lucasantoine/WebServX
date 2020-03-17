@@ -17,6 +17,7 @@
 
 const int BUFFER_SIZE = 128;
 const char *message_bienvenue =  "#===========================================================================#\n|                                                                           |\n|                                  WebServ'X                                |\n|                                                                           |\n|                     Bonjour et bienvenue sur WebServX !                   |\n|        Il s'agit de la page par défaut de WebServX, si vous la voyez      |\n|                     cela signifie que tout fonctionne.                    |\n|       Pour la changer, nous vous invitons a regarder la documentation.    |\n|          WebServX est un serveur web open source créé dans le cadre       |\n|         du cours de Programmation Système Avancé à l'IUT A de Lille.      |\n|          Ce projet a été réalisé par ANTOINE Lucas et POMIER Mathys       |\n|      et supervisé par HAUSPIE Michael, PLACE Jean-Marie, RIQUET Damien    |\n|                 et BEAUFILS Bruno. Projet lancé le 31/01/2020.            |\n|                                                                           |\n#===========================================================================#\n";
+web_stats *stats;
 
 void traitement_signal(int sig) { 
 	waitpid(sig, NULL, WNOHANG);
@@ -107,7 +108,10 @@ int copy(FILE * in, FILE * out){
 void send_stats(FILE *client){
 	skip_headers(client);
 	//snprintf(buffer, sizeof(buffer), "Statistiques du serveur : \n Nombre de connections : %dr\n", get_stats()->served_connections);
-	send_response(client, 200, "OK", "text/html", 256, "TEST");
+	send_status(client, 200, "OK");
+	fprintf(client, "Content-Length: 500\r\nContent-Type: text/html\r\n\r\n");
+	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404);
+	printf("%d", get_stats()->ok_200);
 }
 
 int main (int argc , char ** argv){
@@ -133,6 +137,7 @@ int main (int argc , char ** argv){
 	
 	initialiser_signaux();
 	init_stats();
+	stats = get_stats();
 
     int socket_serveur = creer_serveur(8080);
     int socket_client;
@@ -182,13 +187,13 @@ int main (int argc , char ** argv){
 							send_response(client, 403, "Forbiden", "text/html", strlen(response_message),response_message);
 							get_stats()->ko_403++;
 						}else{
+							get_stats()->ok_200++;
 							skip_headers(client);
 							int fd = fileno(file);
 							char * contenttype = "text/html";
 							if(strstr(rewritetarget, ".jpg")) contenttype = "image/jpeg";
 							send_response(client, 200, "OK", contenttype, get_file_size(fd), "");
 							copy(file, client);
-							get_stats()->ok_200++;
 						}
 					}
 				}
