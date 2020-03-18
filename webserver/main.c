@@ -106,11 +106,9 @@ int copy(FILE * in, FILE * out){
 
 void send_stats(FILE *client){
 	skip_headers(client);
-	//snprintf(buffer, sizeof(buffer), "Statistiques du serveur : \n Nombre de connections : %dr\n", get_stats()->served_connections);
 	send_status(client, 200, "OK");
 	fprintf(client, "Content-Length: 500\r\nContent-Type: text/html\r\n\r\n");
-	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404);
-	printf("%d", get_stats()->ok_200);
+	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d\n", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404);
 }
 
 int main (int argc , char ** argv){
@@ -173,6 +171,7 @@ int main (int argc , char ** argv){
 				}else{
 					char * rewritetarget = rewrite_target(request.target);
 					if(strcmp(rewritetarget, "/stats") == 0){
+						get_stats()->ok_200++;
 						send_stats(client);
 					}else{
 						FILE * file = check_and_open(rewritetarget, document_root);
