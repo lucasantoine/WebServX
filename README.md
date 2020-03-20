@@ -93,5 +93,5 @@ Stats :
 ## Auteurs
 
 * **Mathys POMIER** - [Elkios](https://github.com/Elkios)
-* **Lucas ANTOINE** - [Elkios](https://github.com/Elkios)
+* **Lucas ANTOINE** - [lucasantoine](https://github.com/lucasantoine)
 
