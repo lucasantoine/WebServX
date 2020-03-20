@@ -10,6 +10,7 @@
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <dirent.h>
+#include <semaphore.h>
 #include "socket.h"
 #include "http_parse.h"
 #include "stats.h"
@@ -108,7 +109,7 @@ void send_stats(FILE *client){
 	skip_headers(client);
 	send_status(client, 200, "OK");
 	fprintf(client, "Content-Length: 500\r\nContent-Type: text/html\r\n\r\n");
-	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d\n", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404);
+	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d\n\tNombre d'erreurs 405 : %d\n", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404, get_stats()->ko_405);
 }
 
 int main (int argc , char ** argv){
@@ -132,6 +133,8 @@ int main (int argc , char ** argv){
 
 	char * document_root = argv[1];
 	
+	sem_t semaphore;
+	sem_init(&semaphore, 1, 1);
 	initialiser_signaux();
 	init_stats();
 
@@ -154,37 +157,52 @@ int main (int argc , char ** argv){
 		    	return -1;
 		    	/* traitement d ’ erreur */
 			}
-
+			sem_wait(&semaphore);
 			get_stats()->served_connections++;
-
+			sem_post(&semaphore);
 			char * response_message = "";
 			
 			while(fgets_or_exit(client_message, BUFFER_SIZE, client)) {
+				sem_wait(&semaphore);
 				get_stats()->served_requests++;
+				sem_post(&semaphore);
 				if (parse_http_request(client_message, &request) == 0){
 					response_message = "Bad Request\r\n";
 					send_response(client, 400, "Bad Request", "text/html", strlen(response_message),response_message);
+					sem_wait(&semaphore);
 					get_stats()->ko_400++;
+					sem_post(&semaphore);
 				}else if (request.method == HTTP_UNSUPPORTED){
 					response_message = "Method Not Allowed\r\n";
 					send_response(client, 405 ,"Method Not Allowed", "text/html", strlen(response_message),response_message);
+					sem_wait(&semaphore);
+					get_stats()->ko_405++;
+					sem_post(&semaphore);
 				}else{
 					char * rewritetarget = rewrite_target(request.target);
 					if(strcmp(rewritetarget, "/stats") == 0){
+						sem_wait(&semaphore);
 						get_stats()->ok_200++;
+						sem_post(&semaphore);
 						send_stats(client);
 					}else{
 						FILE * file = check_and_open(rewritetarget, document_root);
 						if(file == NULL){
 							response_message = "Not Found\r\n";
 							send_response(client, 404, "Not Found", "text/html", strlen(response_message),response_message);
+							sem_wait(&semaphore);
 							get_stats()->ko_404++;
+							sem_post(&semaphore);
 						}else if(strstr(rewritetarget, "..") != NULL){
 							response_message = "Forbidden\r\n";
 							send_response(client, 403, "Forbiden", "text/html", strlen(response_message),response_message);
+							sem_wait(&semaphore);
 							get_stats()->ko_403++;
+							sem_post(&semaphore);
 						}else{
+							sem_wait(&semaphore);
 							get_stats()->ok_200++;
+							sem_post(&semaphore);
 							skip_headers(client);
 							int fd = fileno(file);
 							char * contenttype = "text/html";

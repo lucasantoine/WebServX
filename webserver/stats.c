@@ -13,6 +13,7 @@ int init_stats(void)
 	stats.ko_400 = 0;
 	stats.ko_403 = 0;
 	stats.ko_404 = 0;
+	stats.ko_405 = 0;
 	mmaped = mmap(NULL, sizeof(stats), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS, -1, 0);
 	return 0;
 }

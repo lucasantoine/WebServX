@@ -5,6 +5,7 @@ typedef struct {
     int ko_400; 
     int ko_403; 
     int ko_404; 
+    int ko_405;
 } web_stats;
 
 int init_stats(void);
