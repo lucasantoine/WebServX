@@ -106,10 +106,15 @@ int copy(FILE * in, FILE * out){
 }
 
 void send_stats(FILE *client){
+	printf("OK 1\n");
 	skip_headers(client);
+	printf("OK 2\n");
 	send_status(client, 200, "OK");
-	fprintf(client, "Content-Length: 500\r\nContent-Type: text/html\r\n\r\n");
-	fprintf(client, "Stats : \n\tNombre de connexions : %d\n\tNombre de requêtes : %d\n\tNombre de code de retour 200 : %d\n\tNombre d'erreurs 400 : %d\n\tNombre d'erreurs 403 : %d\n\tNombre d'erreurs 404 : %d\n\tNombre d'erreurs 405 : %d\n", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404, get_stats()->ko_405);
+	printf("OK 3\n");
+	fprintf(client, "Content-Length: 1000\r\nContent-Type: text/html\r\n\r\n");
+	printf("OK 4\n");
+	fprintf(client, "<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Page d'accueil</title></head><body><h3>Statistiques du serveur :</h3><ul><li><strong>Nombre de connexions</strong> : %d</li><li><strong>Nombre de requêtes</strong> : %d</li><li><strong>Nombre de code de retour 200</strong> : %d</li><li><strong>Nombre d'erreurs 400</strong> : %d</li><li><strong>Nombre d'erreurs 403</strong> : %d</li><li><strong>Nombre d'erreurs 404</strong> : %d</li><li><strong>Nombre d'erreurs 405</strong> : %d</li></ul></body></html>", get_stats()->served_connections, get_stats()->served_requests, get_stats()->ok_200, get_stats()->ko_400, get_stats()->ko_403, get_stats()->ko_404, get_stats()->ko_405);
+	printf("OK 5\n");
 }
 
 int main (int argc , char ** argv){
