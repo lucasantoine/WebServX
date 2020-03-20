@@ -1,87 +1,97 @@
 # WebServX
 
-One Paragraph of project description goes here
+WebServX est une serveur Web minimaliste réalisé dans le cadre du cours M4101C (Programmation système avancé).
 
-## Getting Started
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
+## Pour commencer
 
-### Prerequisites
+Ces instructions vous permettront d'obtenir une copie du projet sur votre ordinateur local à des fins de développement et de test.
 
-What things you need to install the software and how to install them
+### Installation
 
-```
-Give examples
-```
-
-### Installing
-
-A step by step series of examples that tell you how to get a development env running
-
-Say what the step will be
+Commencez par cloner le projet sur votre machine locale
 
 ```
-Give the example
+git clone https://gitlab.univ-lille.fr/mathys.pomier.etu/webservx.git
 ```
 
-And repeat
+Compilez le projet
 
 ```
-until finished
+make -B
 ```
+### Utilisation
 
-End with an example of getting some data out of the system or using it for a little demo
-
-## Running the tests
-
-Explain how to run the automated tests for this system
-
-### Break down into end to end tests
-
-Explain what these tests test and why
+Lancez le serveur web
 
 ```
-Give an example
+cd webserver/
+```
+```
+./webservx <racine de votre site>
+```
+Nous vous mettons à disposition un site minimaliste pour vos test
+
+```
+./webservx ../simple_website/
 ```
 
-### And coding style tests
+Une fois ceci terminé vous pouvez effectuer des requêtes au serveur.
 
-Explain what these tests test and why
+* Soit avec la commande `nc` :
 
 ```
-Give an example
+nc localhost 8080
+GET / HTTP/1.1
+
+HTTP/1.1 200 OK
+Content-Type: text/html
+Content-Length: 609
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page d'accueil</title>
+</head>
+<body>
+    <h1>Page d'accueil</h1>
+    <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Nulla, veritatis dolore velit libero quae eaque aliquam. Excepturi id unde cumque placeat quia molestiae eius harum quasi exercitationem atque. Quia, amet.</p>
+    <ul>
+        <li><a href="page2.html">Direction la page n°2</a></li>
+    </ul>
+
+    <img src="test_image.png" alt="" width="500">
+</body>
+</html>
 ```
 
-## Deployment
+* Soit via un `navigateur` :
 
-Add additional notes about how to deploy this on a live system
+![Image d'exemple de requête](https://mathys-pomier.fr/images/image_exemple_webservx.png)
 
-## Built With
+Vous pouvez également accéder au statistiques du serveur pour cela vous devez éffectuer une requête sur `/stats` :
+```
+nc localhost 8080
+GET /stats HTTP/1.1
 
-* [Dropwizard](http://www.dropwizard.io/1.0.2/docs/) - The web framework used
-* [Maven](https://maven.apache.org/) - Dependency Management
-* [ROME](https://rometools.github.io/rome/) - Used to generate RSS Feeds
+HTTP/1.1 200 OK
+Content-Length: 500
+Content-Type: text/html
 
-## Contributing
+Stats :
+        Nombre de connexions : 4
+        Nombre de requêtes : 6
+        Nombre de code de retour 200 : 4
+        Nombre d'erreurs 400 : 1
+        Nombre d'erreurs 403 : 0
+        Nombre d'erreurs 404 : 1
+        Nombre d'erreurs 405 : 0
+```
 
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
+## Auteurs
 
-## Versioning
+* **Mathys POMIER** - [Elkios](https://github.com/Elkios)
+* **Lucas ANTOINE** - [Elkios](https://github.com/Elkios)
 
-We use [SemVer](http://semver.org/) for versioning. For the versions available, see the [tags on this repository](https://github.com/your/project/tags). 
-
-## Authors
-
-* **Billie Thompson** - *Initial work* - [PurpleBooth](https://github.com/PurpleBooth)
-
-See also the list of [contributors](https://github.com/your/project/contributors) who participated in this project.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details
-
-## Acknowledgments
-
-* Hat tip to anyone whose code was used
-* Inspiration
-* etc
